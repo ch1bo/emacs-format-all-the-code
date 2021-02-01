@@ -3,7 +3,7 @@
 ;; Author: Lassi Kortela <lassi@lassi.io>
 ;; URL: https://github.com/lassik/emacs-format-all-the-code
 ;; Version: 0.1.0
-;; Package-Requires: ((emacs "24") (cl-lib "0.5"))
+;; Package-Requires: ((emacs "24") (cl-lib "0.5") (inheritenv "0.1"))
 ;; Keywords: languages util
 ;; SPDX-License-Identifier: MIT
 ;;
@@ -192,16 +192,17 @@ even if it produced warnings.  Not all warnings are errors."
       (widen)
       (let ((inbuf (current-buffer))
             (input (buffer-string)))
-        (with-temp-buffer
-          (cl-destructuring-bind (errorp errput) (funcall thunk input)
-            (let* ((no-chg (or errorp
-                               (= 0 (let ((case-fold-search nil))
-                                      (compare-buffer-substrings
-                                       inbuf nil nil nil nil nil)))))
-                   (output (cond (errorp nil)
-                                 (no-chg t)
-                                 (t (buffer-string)))))
-              (list output errput))))))))
+        (inheritenv
+         (with-temp-buffer
+           (cl-destructuring-bind (errorp errput) (funcall thunk input)
+             (let* ((no-chg (or errorp
+                                (= 0 (let ((case-fold-search nil))
+                                       (compare-buffer-substrings
+                                        inbuf nil nil nil nil nil)))))
+                    (output (cond (errorp nil)
+                                  (no-chg t)
+                                  (t (buffer-string)))))
+               (list output errput)))))))))
 
 (defun format-all--buffer-native (mode &rest funcs)
   "Internal helper function to implement formatters.
@@ -343,8 +344,8 @@ Consult the existing formatters for examples of BODY."
                         (mapcar
                          (lambda (mmode)
                            `(format-all--pushhash ',mmode
-                                                  (cons ',formatter ,probe)
-                                                  format-all--mode-table))
+                             (cons ',formatter ,probe)
+                             format-all--mode-table))
                          mmodes)))))
                 (cdr part))))
         (:format
